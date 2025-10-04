@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>Chat Bot</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.1.1/jquery.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            overflow: hidden;
+            background-image: linear-gradient(to right,#43e97b,#38f9d7);
+            font-family: Helvetica, Arial, sans-serif;
+            background-size: cover;
+        }
+        #chat_container {
+            width: 400px;
+            border-radius: 15px;
+            border: 1px solid black;
+            margin: 40px auto;
+            background: #f9f9f9;
+            box-shadow: 0 0 10px rgba(0,0,0,0.2);
+        }
+        #chat_log {
+            background-color: #F3F76F;
+            padding: 10px;
+            border-bottom: 1px solid black;
+            overflow-y: scroll;
+            height: 400px;
+            font-size: 16px;
+        }
+        #chat_input_container {
+            display: flex;
+            padding: 10px;
+            gap: 5px;
+        }
+        #chat_input {
+            flex: 1;
+            padding: 8px;
+            font-size: 15px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+        #send_btn {
+            padding: 8px 15px;
+            background: #234b9b;
+            color: #fff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        #send_btn:hover {
+            background: #1a3670;
+        }
+        .chat_line {
+            overflow: hidden;
+            width: 100%;
+            margin: 5px 0;
+            clear: both;
+        }
+        .chat_bubble, .chat_bubble_user {
+            position: relative;
+            float: left;
+            background-color: #FFF;
+            margin-top: 5px;
+            line-height: 20px;
+            padding: 10px 15px;
+            margin-left: 10px;
+            font-size: 15px;
+            border-radius: 10px;
+            max-width: 70%;
+            word-wrap: break-word;
+        }
+        .chat_bubble_user {
+            float: right;
+            margin-left: 0px;
+            margin-right: 10px;
+            background-color: #234b9b;
+            color: #FFF;
+        }
+    </style>
+</head>
+<body>
+
+<div id="chat_container">
+    <div id="chat_log"></div>
+    <div id="chat_input_container">
+        <input id="chat_input" placeholder="Type a message..."/>
+        <button id="send_btn">Send</button>
+    </div>
+</div>
+
+<script>
+    var ws = new WebSocket("ws://localhost:8000");
+
+    // Close socket when window closes
+    $(window).on('beforeunload', function(){
+        ws.close();
+    });
+
+    ws.onerror = function(event) {
+        console.log("WebSocket error, reloading...");
+        location.reload();
+    };
+
+    ws.onmessage = function(event) { 
+        var message_received = event.data;
+        chat_add_message(message_received, false);
+    };
+
+    // Add a message to the chat history
+    function chat_add_message(message, isUser) {
+        var class_suffix = isUser ? '_user' : '';
+        var html = `
+        <div class="chat_line">
+            <div class="chat_bubble${class_suffix}">
+                ${message}
+            </div>
+        </div>`;
+        chat_add_html(html);
+    }
+
+    // Add HTML to the chat history
+    function chat_add_html(html) {
+        $("#chat_log").append(html);
+        chat_scrolldown();
+    }
+
+    // Scrolls the chat history to the bottom
+    function chat_scrolldown() {
+        $("#chat_log").animate({ scrollTop: $("#chat_log")[0].scrollHeight }, 500);
+    }
+
+    // Send message function
+    function sendMessage() {
+        var message = $('#chat_input').val();
+        if (message.trim() !== "") {
+            $('#chat_input').val("");
+            chat_add_message(message, true);
+            ws.send(message);
+        }
+    }
+
+    // Enter key sends message
+    $(function() {
+        $('#chat_input').on('keypress', function(event) {
+            if (event.which === 13) sendMessage();
+        });
+        $('#send_btn').on('click', function() {
+            sendMessage();
+        });
+
+        // 👋 Auto greeting
+        chat_add_message("Hello Boss 👋, how can I help you today?", false);
+    });
+</script>
+
+</body>
+</html>
